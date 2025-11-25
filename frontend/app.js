@@ -1,647 +1,412 @@
 const API_URL = 'http://localhost:3000/api';
 let usuarioLogado = null;
+let filtroAtual = 'Corrida';
 let paginaAtual = 1;
-let tipoFiltro = '';
-let modoMinhasReceitas = false;
+const itensPorPagina = 4;
+let atividadesCache = [];
 
-// Inicialização
+// --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
-    carregarEmpresa();
-    carregarEstatisticas();
-    carregarReceitas();
-    configurarEventos();
+    // Inicializa a UI com estado deslogado
+    atualizarUI();
+    
+    // Carrega atividades iniciais
+    carregarAtividades();
+    
+    // Verifica se há sessão salva (Opcional, descomente se implementar persistência)
+    // verificarSessao(); 
 });
 
-// Configurar eventos
-function configurarEventos() {
-    document.getElementById('btn-login').addEventListener('click', () => {
-        const modal = new bootstrap.Modal(document.getElementById('loginModal'));
-        modal.show();
-    });
+// --- API CALLS ---
 
-    document.getElementById('btn-logout').addEventListener('click', fazerLogout);
-    document.getElementById('login-form').addEventListener('submit', fazerLogin);
-    const btnReceitas = document.getElementById('btn-receitas');
-    const criarReceitaModal = document.getElementById('criarReceitaModal');
+async function fetchAPI(endpoint, method = 'GET', body = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) options.body = JSON.stringify(body);
     
-    btnReceitas.addEventListener('click', () => {
-        if (usuarioLogado) {
-            const modal = new bootstrap.Modal(criarReceitaModal);
-            modal.show();
-        } else {
-            mostrarModalLogin();
-        }
-    });
-
-    // Atualizar cor do botão quando modal abrir/fechar
-    criarReceitaModal.addEventListener('show.bs.modal', () => {
-        btnReceitas.style.backgroundColor = '#483DAD';
-        btnReceitas.style.color = '#FFFFFF';
-    });
-
-    criarReceitaModal.addEventListener('hide.bs.modal', () => {
-        btnReceitas.style.backgroundColor = 'transparent';
-        btnReceitas.style.color = '#FFFFFF';
-    });
-
-    document.querySelectorAll('.btn-filtro').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            if (!usuarioLogado) {
-                mostrarModalLogin();
-                return;
-            }
-            tipoFiltro = e.target.dataset.tipo;
-            paginaAtual = 1;
-            document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            modoMinhasReceitas = false;
-            carregarReceitas();
-        });
-    });
-
-    document.getElementById('criar-receita-form').addEventListener('submit', criarReceita);
-}
-
-// Carregar dados da empresa
-async function carregarEmpresa() {
     try {
-        const response = await fetch(`${API_URL}/empresa`);
-        const empresa = await response.json();
-        document.getElementById('empresa-nome').textContent = empresa.nome;
-        
-        // Atualizar logo se fornecido
-        if (empresa.logo) {
-            const logoEl = document.getElementById('empresa-logo');
-            if (logoEl) {
-                // Se o logo já tem caminho completo, usar; senão, adicionar caminho
-                const logoPath = empresa.logo.startsWith('anexos/') 
-                    ? empresa.logo 
-                    : `anexos/logo_saepsaude/${empresa.logo}`;
-                logoEl.src = logoPath;
-            }
-        }
+        const response = await fetch(`${API_URL}${endpoint}`, options);
+        return response;
     } catch (error) {
-        console.error('Erro ao carregar empresa:', error);
+        console.error('Erro de conexão com a API:', error);
+        alert('Erro de conexão com o servidor. Verifique se o backend está rodando.');
+        return null;
     }
 }
 
-// Carregar estatísticas
-async function carregarEstatisticas() {
-    try {
-        const response = await fetch(`${API_URL}/empresa/estatisticas`);
-        const stats = await response.json();
-        document.getElementById('total-receitas').textContent = stats.totalReceitas;
-        document.getElementById('total-dificuldade').textContent = stats.totalDificuldade;
-    } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
+// --- AUTENTICAÇÃO ---
+
+function toggleLogin() {
+    if (usuarioLogado) {
+        // LOGOUT
+        usuarioLogado = null;
+        atualizarUI();
+        // Resetar estado da interface
+        document.getElementById('form-atividade-container').style.display = 'none';
+        document.getElementById('lista-atividades').style.display = 'block';
+        document.getElementById('paginacao').style.display = 'flex';
+        carregarAtividades(); // Recarrega para resetar status de likes
+    } else {
+        // ABRIR LOGIN
+        document.getElementById('modal-login').style.display = 'flex';
     }
 }
 
-// Carregar receitas
-async function carregarReceitas() {
-    try {
-        let url = `${API_URL}/receitas?pagina=${paginaAtual}&limite=4`;
-        if (tipoFiltro) url += `&tipo=${encodeURIComponent(tipoFiltro)}`;
-        
-        if (modoMinhasReceitas && usuarioLogado) {
-            const response = await fetch(`${API_URL}/minhas-receitas`, {
-                headers: { 'user-id': usuarioLogado.id }
-            });
-            const receitas = await response.json();
-            exibirReceitas(receitas, { total: receitas.length, pagina: 1, limite: 4 });
-            return;
-        }
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ erro: 'Erro ao carregar receitas' }));
-            console.error('Erro ao carregar receitas:', errorData);
-            document.getElementById('receitas-container').innerHTML = '<p class="text-center text-danger">Erro ao carregar receitas. Verifique o console para mais detalhes.</p>';
-            return;
-        }
-        const data = await response.json();
-        if (!data.receitas) {
-            console.error('Resposta inválida do servidor:', data);
-            document.getElementById('receitas-container').innerHTML = '<p class="text-center text-danger">Erro: Resposta inválida do servidor.</p>';
-            return;
-        }
-        exibirReceitas(data.receitas, data);
-    } catch (error) {
-        console.error('Erro ao carregar receitas:', error);
-        document.getElementById('receitas-container').innerHTML = '<p class="text-center text-danger">Erro ao carregar receitas. Verifique se o servidor está rodando.</p>';
-    }
+function fecharModalLogin() {
+    document.getElementById('modal-login').style.display = 'none';
+    document.getElementById('form-login').reset();
+    const msgErro = document.getElementById('msg-erro-login');
+    if(msgErro) msgErro.style.display = 'none';
+    document.querySelectorAll('input').forEach(i => i.classList.remove('erro'));
 }
 
-// Exibir receitas
-async function exibirReceitas(receitas, paginacao) {
-    const container = document.getElementById('receitas-container');
-    container.innerHTML = '';
-
-    if (!receitas || !Array.isArray(receitas)) {
-        container.innerHTML = '<p class="text-center text-danger">Erro: Dados inválidos recebidos.</p>';
-        return;
-    }
-
-    if (receitas.length === 0) {
-        container.innerHTML = '<p class="text-center">Nenhuma receita encontrada.</p>';
-        document.getElementById('paginacao-container').innerHTML = '';
-        return;
-    }
-
-    for (const receita of receitas) {
-        const card = criarCardReceita(receita);
-        container.appendChild(card);
-        await carregarLikesComentarios(receita.id, card);
-    }
-
-    criarPaginacao(paginacao);
-}
-
-// Função para obter caminho da foto de perfil
-function obterFotoPerfil(fotoPerfil, nomeUsuario) {
-    // Se já tem o caminho completo, retornar
-    if (fotoPerfil && fotoPerfil.startsWith('anexos/')) {
-        return fotoPerfil;
-    }
-    
-    // Mapear nomes de arquivo para caminhos
-    if (fotoPerfil) {
-        if (fotoPerfil.includes('usuario01') || fotoPerfil === 'usuario01.jpg') {
-            return 'anexos/imagens_perfil/usuario01.jpg';
-        }
-        if (fotoPerfil.includes('usuario02') || fotoPerfil === 'usuario02.jpg') {
-            return 'anexos/imagens_perfil/usuario02.jpg';
-        }
-        if (fotoPerfil.includes('usuario03') || fotoPerfil === 'usuario03.jpg') {
-            return 'anexos/imagens_perfil/usuario03.jpg';
-        }
-        if (fotoPerfil.includes('saepsaude') || fotoPerfil === 'saepsaude.png') {
-            return 'anexos/logo_saepsaude/SAEPSaude.png';
-        }
-    }
-    
-    // Mapear nomes de usuário para imagens
-    if (nomeUsuario) {
-        const nomeLower = nomeUsuario.toLowerCase();
-        if (nomeLower.includes('usuario01') || nomeLower.includes('usuario1')) {
-            return 'anexos/imagens_perfil/usuario01.jpg';
-        }
-        if (nomeLower.includes('usuario02') || nomeLower.includes('usuario2')) {
-            return 'anexos/imagens_perfil/usuario02.jpg';
-        }
-        if (nomeLower.includes('usuario03') || nomeLower.includes('usuario3')) {
-            return 'anexos/imagens_perfil/usuario03.jpg';
-        }
-    }
-    
-    return 'anexos/imagens_perfil/usuario01.jpg'; // Default
-}
-
-// Criar card de receita
-function criarCardReceita(receita) {
-    const card = document.createElement('div');
-    card.className = 'receita-card';
-    card.dataset.receitaId = receita.id;
-
-    const dataFormatada = formatarData(receita.data_criacao);
-    // Converter tempo_preparo para formato de distância (km)
-    const distanciaKm = (receita.tempo_preparo / 10).toFixed(1);
-    // Porções como duração
-    const duracaoMin = receita.porcoes;
-    // Dificuldade como calorias
-    const calorias = receita.dificuldade === 'Fácil' ? 200 : receita.dificuldade === 'Médio' ? 350 : 500;
-    const fotoPerfil = obterFotoPerfil(receita.foto_perfil, receita.usuario_nome);
-
-    card.innerHTML = `
-        <div class="receita-left">
-            <img src="${fotoPerfil}" alt="Avatar" class="receita-avatar">
-            <div class="receita-usuario-nome">${receita.usuario_nome}</div>
-        </div>
-        <div class="receita-center">
-            <div class="receita-tipo">${receita.tipo}</div>
-            <div class="receita-data">${dataFormatada}</div>
-            <div class="receita-info">
-                <div class="receita-info-item">
-                    <span class="receita-info-value">${distanciaKm} km</span>
-                    <span class="receita-info-label">Distância</span>
-                </div>
-                <div class="receita-info-item">
-                    <span class="receita-info-value">${duracaoMin} min</span>
-                    <span class="receita-info-label">Duração</span>
-                </div>
-                <div class="receita-info-item">
-                    <span class="receita-info-value">${calorias}</span>
-                    <span class="receita-info-label">Calorias</span>
-                </div>
-            </div>
-        </div>
-        <div class="receita-right">
-            <div class="receita-acao" data-acao="like">
-                <img src="anexos/icones/coracao.svg" alt="Like" class="icon-like">
-                <span class="like-count">${receita.total_likes || 0}</span>
-            </div>
-            <div class="receita-acao" data-acao="comentario">
-                <img src="anexos/icones/comentario.svg" alt="Comentário">
-                <span class="comentario-count">${receita.total_comentarios || 0}</span>
-            </div>
-        </div>
-    `;
-
-    // Adicionar seção de comentários separadamente para melhor controle
-    const comentariosSection = document.createElement('div');
-    comentariosSection.className = 'comentarios-section d-none';
-    comentariosSection.setAttribute('data-comentarios-section', '');
-    comentariosSection.innerHTML = `
-        <div class="comentario-input-container">
-            <input type="text" class="comentario-input" placeholder="Escrever um comentário..." data-comentario-input>
-            <button class="btn-enviar-comentario" data-enviar-comentario type="button">
-                Enviar
-            </button>
-        </div>
-        <div class="erro-comentario d-none" data-erro-comentario></div>
-        <div class="comentarios-lista" data-comentarios-lista></div>
-    `;
-    card.appendChild(comentariosSection);
-
-    // Eventos de like e comentário
-    const likeBtn = card.querySelector('[data-acao="like"]');
-    const comentarioBtn = card.querySelector('[data-acao="comentario"]');
-    const enviarComentarioBtn = card.querySelector('[data-enviar-comentario]');
-    const comentarioInput = card.querySelector('[data-comentario-input]');
-
-    likeBtn.addEventListener('click', () => {
-        if (!usuarioLogado) {
-            mostrarModalLogin();
-            return;
-        }
-        toggleLike(receita.id, likeBtn);
-    });
-
-    comentarioBtn.addEventListener('click', () => {
-        if (!usuarioLogado) {
-            mostrarModalLogin();
-            return;
-        }
-        const section = card.querySelector('[data-comentarios-section]');
-        section.classList.toggle('d-none');
-        if (!section.classList.contains('d-none')) {
-            carregarComentarios(receita.id, card);
-        }
-    });
-
-    enviarComentarioBtn.addEventListener('click', () => enviarComentario(receita.id, comentarioInput, card));
-    comentarioInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') enviarComentario(receita.id, comentarioInput, card);
-    });
-
-    return card;
-}
-
-// Carregar likes e comentários
-async function carregarLikesComentarios(receitaId, card) {
-    if (!usuarioLogado) return;
-
-    try {
-        const response = await fetch(`${API_URL}/receitas/${receitaId}/likes`, {
-            headers: { 'user-id': usuarioLogado.id }
-        });
-        const data = await response.json();
-        const likeBtn = card.querySelector('[data-acao="like"]');
-        if (likeBtn) {
-            const likeImg = likeBtn.querySelector('img');
-            if (data.curtiu && likeImg) {
-                likeBtn.classList.add('curtido');
-                likeImg.src = 'anexos/icones/CoracaoVermelho.svg';
-            }
-        }
-    } catch (error) {
-        console.error('Erro ao carregar likes:', error);
-    }
-}
-
-// Toggle like
-async function toggleLike(receitaId, btn) {
-    try {
-        const response = await fetch(`${API_URL}/receitas/${receitaId}/like`, {
-            method: 'POST',
-            headers: { 'user-id': usuarioLogado.id, 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        const countEl = btn.querySelector('.like-count');
-        const likeImg = btn.querySelector('img');
-        let count = parseInt(countEl.textContent);
-        
-        if (data.acao === 'adicionado') {
-            count++;
-            btn.classList.add('curtido');
-            if (likeImg) {
-                likeImg.src = 'anexos/icones/CoracaoVermelho.svg';
-            }
-        } else {
-            count--;
-            btn.classList.remove('curtido');
-            if (likeImg) {
-                likeImg.src = 'anexos/icones/coracao.svg';
-            }
-        }
-        countEl.textContent = count;
-        carregarEstatisticas();
-    } catch (error) {
-        console.error('Erro ao dar like:', error);
-    }
-}
-
-// Carregar comentários
-async function carregarComentarios(receitaId, card) {
-    try {
-        const response = await fetch(`${API_URL}/receitas/${receitaId}/comentarios`);
-        const comentarios = await response.json();
-        const lista = card.querySelector('[data-comentarios-lista]');
-        lista.innerHTML = '';
-
-        comentarios.forEach(comentario => {
-            const item = document.createElement('div');
-            item.className = 'comentario-item';
-            const fotoPerfil = obterFotoPerfil(comentario.foto_perfil, comentario.usuario_nome);
-            item.innerHTML = `
-                <div class="comentario-header">
-                    <img src="${fotoPerfil}" alt="Avatar" class="comentario-avatar">
-                    <strong>${comentario.usuario_nome}</strong>
-                </div>
-                <div class="comentario-texto">${comentario.texto}</div>
-            `;
-            lista.appendChild(item);
-        });
-
-        const countEl = card.querySelector('.comentario-count');
-        countEl.textContent = comentarios.length;
-    } catch (error) {
-        console.error('Erro ao carregar comentários:', error);
-    }
-}
-
-// Enviar comentário
-async function enviarComentario(receitaId, input, card) {
-    const texto = input.value.trim();
-    const erroEl = card.querySelector('[data-erro-comentario]');
-
-    if (!texto) {
-        erroEl.textContent = 'não é possível enviar um comentário vazio';
-        erroEl.classList.remove('d-none');
-        return;
-    }
-
-    if (texto.length < 3) {
-        erroEl.textContent = 'Comentário deve ter pelo menos 3 caracteres';
-        erroEl.classList.remove('d-none');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/receitas/${receitaId}/comentarios`, {
-            method: 'POST',
-            headers: { 'user-id': usuarioLogado.id, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texto })
-        });
-
-        if (response.ok) {
-            input.value = '';
-            erroEl.classList.add('d-none');
-            carregarComentarios(receitaId, card);
-            carregarEstatisticas();
-        } else {
-            const data = await response.json();
-            erroEl.textContent = data.erro || 'Erro ao enviar comentário';
-            erroEl.classList.remove('d-none');
-        }
-    } catch (error) {
-        console.error('Erro ao enviar comentário:', error);
-        erroEl.textContent = 'Erro ao enviar comentário';
-        erroEl.classList.remove('d-none');
-    }
-}
-
-// Criar paginação
-function criarPaginacao(paginacao) {
-    const container = document.getElementById('paginacao-container');
-    if (!paginacao || paginacao.total <= paginacao.limite) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const totalPaginas = Math.ceil(paginacao.total / paginacao.limite);
-    const paginacaoEl = document.createElement('div');
-    paginacaoEl.className = 'paginacao';
-
-    // Botão Primeira
-    const btnPrimeira = document.createElement('button');
-    btnPrimeira.className = 'btn-pagina';
-    btnPrimeira.textContent = 'Primeira';
-    btnPrimeira.disabled = paginaAtual === 1;
-    btnPrimeira.addEventListener('click', () => {
-        paginaAtual = 1;
-        carregarReceitas();
-    });
-    paginacaoEl.appendChild(btnPrimeira);
-
-    // Botão Anterior
-    const btnAnterior = document.createElement('button');
-    btnAnterior.className = 'btn-pagina';
-    btnAnterior.textContent = 'Anterior';
-    btnAnterior.disabled = paginaAtual === 1;
-    btnAnterior.addEventListener('click', () => {
-        if (paginaAtual > 1) {
-            paginaAtual--;
-            carregarReceitas();
-        }
-    });
-    paginacaoEl.appendChild(btnAnterior);
-
-    // Números de página
-    for (let i = 1; i <= totalPaginas; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-pagina';
-        if (i === paginaAtual) btn.classList.add('active');
-        btn.textContent = i;
-        btn.addEventListener('click', () => {
-            paginaAtual = i;
-            carregarReceitas();
-        });
-        paginacaoEl.appendChild(btn);
-    }
-
-    // Botão Próxima
-    const btnProxima = document.createElement('button');
-    btnProxima.className = 'btn-pagina';
-    btnProxima.textContent = 'Próxima';
-    btnProxima.disabled = paginaAtual === totalPaginas;
-    btnProxima.addEventListener('click', () => {
-        if (paginaAtual < totalPaginas) {
-            paginaAtual++;
-            carregarReceitas();
-        }
-    });
-    paginacaoEl.appendChild(btnProxima);
-
-    // Botão Última
-    const btnUltima = document.createElement('button');
-    btnUltima.className = 'btn-pagina';
-    btnUltima.textContent = 'Última';
-    btnUltima.disabled = paginaAtual === totalPaginas;
-    btnUltima.addEventListener('click', () => {
-        paginaAtual = totalPaginas;
-        carregarReceitas();
-    });
-    paginacaoEl.appendChild(btnUltima);
-
-    container.innerHTML = '';
-    container.appendChild(paginacaoEl);
-}
-
-// Fazer login
-async function fazerLogin(e) {
+document.getElementById('form-login').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const senha = document.getElementById('login-senha').value;
-    const erroEl = document.getElementById('login-erro');
 
-    try {
-        const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, senha })
-        });
+    const res = await fetchAPI('/login', 'POST', { email, senha });
 
-        if (response.ok) {
-            usuarioLogado = await response.json();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-            modal.hide();
-            atualizarInterfaceLogin();
-            carregarReceitas();
-        } else {
-            const data = await response.json();
-            erroEl.textContent = data.erro || 'Erro ao fazer login';
-            erroEl.classList.remove('d-none');
-        }
-    } catch (error) {
-        erroEl.textContent = 'Erro ao fazer login';
-        erroEl.classList.remove('d-none');
+    if (res && res.ok) {
+        usuarioLogado = await res.json();
+        fecharModalLogin();
+        atualizarUI();
+        carregarAtividades(); // Recarrega para atualizar likes do usuário
+    } else {
+        const msg = document.getElementById('msg-erro-login');
+        msg.textContent = 'Email ou senha incorreta';
+        msg.style.display = 'block';
+        document.getElementById('login-email').classList.add('erro');
+        document.getElementById('login-senha').classList.add('erro');
     }
-}
+});
 
-// Fazer logout
-function fazerLogout() {
-    usuarioLogado = null;
-    atualizarInterfaceLogin();
-    tipoFiltro = '';
-    paginaAtual = 1;
-    modoMinhasReceitas = false;
-    document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('[data-tipo=""]').classList.add('active');
-    carregarReceitas();
-}
+// --- INTERFACE ---
 
-// Atualizar interface de login
-function atualizarInterfaceLogin() {
-    const btnLogin = document.getElementById('btn-login');
-    const btnLogout = document.getElementById('btn-logout');
-    const btnReceitas = document.getElementById('btn-receitas');
-    const userInfo = document.getElementById('user-info');
+function atualizarUI() {
+    const btnLogin = document.getElementById('btn-login-logout');
+    const nomeUser = document.getElementById('usuario-nome');
+    const imgUser = document.getElementById('usuario-img');
+    const statAtiv = document.getElementById('stat-atividades');
+    const statCal = document.getElementById('stat-calorias');
+    const btnCriar = document.getElementById('btn-criar-atividade');
 
     if (usuarioLogado) {
-        btnLogin.classList.add('d-none');
-        btnLogout.classList.remove('d-none');
-        btnReceitas.disabled = false;
-        userInfo.textContent = `Olá, ${usuarioLogado.nome}`;
-        userInfo.classList.remove('d-none');
+        // Estado LOGADO
+        btnLogin.textContent = 'Logout';
+        nomeUser.textContent = usuarioLogado.nome;
+        // Se o caminho da imagem vier do banco, use-o. Caso contrário, fallback.
+        imgUser.src = usuarioLogado.imagem || 'anexos/logo_saepsaude/SAEPSaude.png';
+        statAtiv.textContent = usuarioLogado.qtd_atividades;
+        statCal.textContent = usuarioLogado.qtd_calorias;
+        btnCriar.disabled = false;
     } else {
-        btnLogin.classList.remove('d-none');
-        btnLogout.classList.add('d-none');
-        btnReceitas.disabled = true;
-        userInfo.classList.add('d-none');
+        // Estado DESLOGADO
+        btnLogin.textContent = 'Login';
+        nomeUser.textContent = 'Visitante';
+        imgUser.src = 'anexos/logo_saepsaude/SAEPSaude.png';
+        statAtiv.textContent = '-';
+        statCal.textContent = '-';
+        btnCriar.disabled = true;
+        btnCriar.style.backgroundColor = 'transparent'; // Reset estilo
     }
 }
 
-// Mostrar modal de login
-function mostrarModalLogin() {
-    const modal = new bootstrap.Modal(document.getElementById('loginModal'));
-    modal.show();
+// --- ATIVIDADES ---
+
+async function carregarAtividades() {
+    const container = document.getElementById('lista-atividades');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">Carregando...</p>';
+
+    const res = await fetchAPI(`/atividades?tipo=${filtroAtual}`);
+    
+    if (res && res.ok) {
+        atividadesCache = await res.json();
+        renderizarLista();
+    } else {
+        container.innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar atividades.</p>';
+    }
 }
 
-
-// Criar receita
-async function criarReceita(e) {
-    e.preventDefault();
-    const form = e.target;
-    const campos = {
-        titulo: document.getElementById('receita-titulo'),
-        tipo: document.getElementById('receita-tipo'),
-        tempo: document.getElementById('receita-tempo'),
-        porcoes: document.getElementById('receita-porcoes'),
-        dificuldade: document.getElementById('receita-dificuldade')
-    };
-
-    let temErro = false;
-    Object.keys(campos).forEach(key => {
-        const campo = campos[key];
-        const erroEl = campo.nextElementSibling;
-        if (!campo.value) {
-            campo.classList.add('erro');
-            erroEl.textContent = 'Campo obrigatório';
-            erroEl.classList.remove('d-none');
-            temErro = true;
-        } else {
-            campo.classList.remove('erro');
-            erroEl.classList.add('d-none');
-        }
+function filtrarAtividades(tipo) {
+    filtroAtual = tipo;
+    paginaAtual = 1;
+    
+    // Atualiza visual dos botões
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent === tipo) btn.classList.add('active');
     });
 
-    if (temErro) return;
+    // Reseta visual do botão de criar (caso estivesse ativo)
+    document.getElementById('btn-criar-atividade').style.backgroundColor = 'transparent';
+    
+    // Mostra lista e esconde form
+    document.getElementById('form-atividade-container').style.display = 'none';
+    document.getElementById('lista-atividades').style.display = 'block';
+    document.getElementById('paginacao').style.display = 'flex';
 
-    try {
-        const response = await fetch(`${API_URL}/receitas`, {
-            method: 'POST',
-            headers: { 'user-id': usuarioLogado.id, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                titulo: campos.titulo.value,
-                tipo: campos.tipo.value,
-                tempo_preparo: parseInt(campos.tempo.value),
-                porcoes: parseInt(campos.porcoes.value),
-                dificuldade: campos.dificuldade.value
-            })
-        });
+    carregarAtividades();
+}
 
-        if (response.ok) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('criarReceitaModal'));
-            modal.hide();
-            form.reset();
-            tipoFiltro = '';
-            paginaAtual = 1;
-            modoMinhasReceitas = false;
-            document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
-            const btnTodas = document.querySelector('[data-tipo=""]');
-            if (btnTodas) btnTodas.classList.add('active');
-            carregarReceitas();
-            carregarEstatisticas();
-        } else {
-            const data = await response.json();
-            alert(data.erro || 'Erro ao criar receita');
+async function renderizarLista() {
+    const lista = document.getElementById('lista-atividades');
+    lista.innerHTML = '';
+
+    if (atividadesCache.length === 0) {
+        lista.innerHTML = '<p style="text-align: center; padding: 20px;">Nenhuma atividade encontrada.</p>';
+        renderizarPaginacao(0);
+        return;
+    }
+
+    const total = atividadesCache.length;
+    const totalPaginas = Math.ceil(total / itensPorPagina);
+    
+    // Slice para paginação
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const itensPagina = atividadesCache.slice(inicio, fim);
+
+    // Para cada atividade na página, precisamos checar o like
+    // Fazemos isso em paralelo para não travar
+    const promises = itensPagina.map(async (atv) => {
+        let curtiu = false;
+        if (usuarioLogado) {
+            const check = await fetchAPI(`/curtidas/check?id_usuario=${usuarioLogado.id}&id_atividade=${atv.id}`);
+            if (check && check.ok) curtiu = (await check.json()).liked;
         }
-    } catch (error) {
-        console.error('Erro ao criar receita:', error);
-        alert('Erro ao criar receita');
+        return { ...atv, curtiu };
+    });
+
+    const atividadesRenderizadas = await Promise.all(promises);
+
+    atividadesRenderizadas.forEach(atv => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        // Formatação de data
+        const dataObj = new Date(atv.data_atividade);
+        const dataFmt = `${String(dataObj.getHours()).padStart(2,'0')}:${String(dataObj.getMinutes()).padStart(2,'0')} - ${dataObj.toLocaleDateString('pt-BR')}`;
+
+        // Ícone do coração (Regra de cor #FF0000 se curtiu)
+        const iconCoracao = atv.curtiu ? 'anexos/icones/CoracaoVermelho.svg' : 'anexos/icones/coracao.svg';
+        // Se a imagem do usuário falhar, usa fallback
+        const imgUsuario = atv.imagem_usuario || 'anexos/imagens_perfil/usuario03.jpg';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <img src="${imgUsuario}" alt="User" onerror="this.src='anexos/imagens_perfil/usuario03.jpg'">
+                <div class="card-info">
+                    <h4>${atv.nome_usuario}</h4>
+                </div>
+                <span class="card-date">${dataFmt}</span>
+            </div>
+            <div class="card-body">
+                <h4>${atv.tipo_atividade}</h4>
+                <div class="card-stats">
+                    <span>${atv.distancia_metros >= 1000 ? (atv.distancia_metros/1000).toFixed(1)+' km' : atv.distancia_metros+' m'}</span>
+                    <span>${atv.duracao_minutos} min</span>
+                    <span>${atv.calorias} kcal</span>
+                </div>
+            </div>
+            <div class="card-actions">
+                <div class="icon-btn" onclick="toggleLike(${atv.id})">
+                    <img src="${iconCoracao}" alt="Like">
+                    <span>${atv.num_likes}</span>
+                </div>
+                <div class="icon-btn" onclick="toggleComentario(${atv.id})">
+                    <img src="anexos/icones/comentario.svg" alt="Comment">
+                    <span id="count-comment-${atv.id}">${atv.num_comments}</span>
+                </div>
+            </div>
+            
+            <!-- Sessão de Comentários -->
+            <div id="comentarios-${atv.id}" class="comment-section">
+                <div class="comment-input-area">
+                    <input type="text" id="input-comment-${atv.id}" placeholder="Escrever um comentário..." maxlength="200">
+                    <button class="btn-send" onclick="enviarComentario(${atv.id})" title="Enviar">
+                        <img src="anexos/icones/send.svg" alt="Enviar">
+                    </button>
+                </div>
+                <small id="erro-comment-${atv.id}" style="color: red; display: none; margin-top: 5px;">O comentário deve ter mais de 2 caracteres.</small>
+            </div>
+        `;
+        lista.appendChild(card);
+    });
+
+    renderizarPaginacao(totalPaginas);
+}
+
+function renderizarPaginacao(totalPaginas) {
+    const div = document.getElementById('paginacao');
+    div.innerHTML = '';
+    
+    if (totalPaginas <= 1) return;
+
+    // Botão Primeira
+    const btnPrim = document.createElement('button');
+    btnPrim.textContent = 'Primeira';
+    btnPrim.className = 'page-link';
+    btnPrim.disabled = paginaAtual === 1;
+    btnPrim.onclick = () => { paginaAtual = 1; renderizarLista(); };
+    div.appendChild(btnPrim);
+
+    // Botão Anterior
+    const btnAnt = document.createElement('button');
+    btnAnt.textContent = 'Anterior';
+    btnAnt.className = 'page-link';
+    btnAnt.disabled = paginaAtual === 1;
+    btnAnt.onclick = () => { paginaAtual--; renderizarLista(); };
+    div.appendChild(btnAnt);
+
+    // Números das páginas
+    for (let i = 1; i <= totalPaginas; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = `page-link ${i === paginaAtual ? 'active' : ''}`;
+        btn.onclick = () => { paginaAtual = i; renderizarLista(); };
+        div.appendChild(btn);
+    }
+
+    // Botão Próxima
+    const btnProx = document.createElement('button');
+    btnProx.textContent = 'Próxima';
+    btnProx.className = 'page-link';
+    btnProx.disabled = paginaAtual === totalPaginas;
+    btnProx.onclick = () => { paginaAtual++; renderizarLista(); };
+    div.appendChild(btnProx);
+
+    // Botão Última
+    const btnUlt = document.createElement('button');
+    btnUlt.textContent = 'Última';
+    btnUlt.className = 'page-link';
+    btnUlt.disabled = paginaAtual === totalPaginas;
+    btnUlt.onclick = () => { paginaAtual = totalPaginas; renderizarLista(); };
+    div.appendChild(btnUlt);
+}
+
+// --- AÇÕES (LIKE E COMENTÁRIO) ---
+
+async function toggleLike(idAtividade) {
+    if (!usuarioLogado) {
+        alert('Faça login para curtir atividades.');
+        toggleLogin();
+        return;
+    }
+    
+    await fetchAPI('/curtidas', 'POST', { 
+        id_usuario: usuarioLogado.id, 
+        id_atividade: idAtividade 
+    });
+    
+    // Recarrega a lista para atualizar o ícone e o contador corretamente
+    // (Poderia ser otimizado atualizando só o DOM, mas assim garante sincronia)
+    renderizarLista(); 
+}
+
+function toggleComentario(idAtividade) {
+    const div = document.getElementById(`comentarios-${idAtividade}`);
+    // Toggle display
+    div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
+}
+
+async function enviarComentario(idAtividade) {
+    if (!usuarioLogado) {
+        alert('Faça login para comentar.');
+        return;
+    }
+    
+    const input = document.getElementById(`input-comment-${idAtividade}`);
+    const texto = input.value.trim();
+    const erro = document.getElementById(`erro-comment-${idAtividade}`);
+
+    // Validação: Maior que 2 caracteres e não vazio
+    if (texto.length === 0) {
+        alert("Não é possível enviar um comentário vazio.");
+        return;
+    }
+
+    if (texto.length <= 2) {
+        erro.style.display = 'block';
+        return;
+    }
+    erro.style.display = 'none';
+
+    const res = await fetchAPI('/comentarios', 'POST', {
+        id_usuario: usuarioLogado.id,
+        id_atividade: idAtividade,
+        comentario: texto
+    });
+
+    if (res && res.ok) {
+        alert('Comentário enviado com sucesso!');
+        input.value = '';
+        toggleComentario(idAtividade); // Esconde a área
+        
+        // Atualiza contador visualmente
+        const countSpan = document.getElementById(`count-comment-${idAtividade}`);
+        countSpan.textContent = parseInt(countSpan.textContent) + 1;
     }
 }
 
-// Formatar data
-function formatarData(dataString) {
-    const data = new Date(dataString);
-    const horas = String(data.getHours()).padStart(2, '0');
-    const minutos = String(data.getMinutes()).padStart(2, '0');
-    const dia = String(data.getDate()).padStart(2, '0');
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const ano = String(data.getFullYear()).slice(-2);
-    return `${horas}:${minutos} - ${dia}/${mes}/${ano}`;
+// --- NOVA ATIVIDADE ---
+
+function mostrarFormAtividade() {
+    // Esconde lista e paginação
+    document.getElementById('lista-atividades').style.display = 'none';
+    document.getElementById('paginacao').style.display = 'none';
+    // Mostra formulário
+    document.getElementById('form-atividade-container').style.display = 'block';
+    
+    // Estilo visual no botão lateral (ativo)
+    document.getElementById('btn-criar-atividade').style.backgroundColor = '#483DAD';
+    // Remove ativo dos filtros
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
 }
 
+function cancelarCriacao() {
+    document.getElementById('form-atividade-container').style.display = 'none';
+    document.getElementById('form-nova-atividade').reset();
+    
+    document.getElementById('lista-atividades').style.display = 'block';
+    document.getElementById('paginacao').style.display = 'flex';
+    
+    // Restaura estilo botão e filtro
+    document.getElementById('btn-criar-atividade').style.backgroundColor = 'transparent';
+    // Restaura filtro visualmente
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+        if (btn.textContent === filtroAtual) btn.classList.add('active');
+    });
+}
 
+document.getElementById('form-nova-atividade').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const dados = {
+        id_usuario: usuarioLogado.id,
+        tipo: document.getElementById('novo-tipo').value,
+        distancia: document.getElementById('novo-distancia').value,
+        duracao: document.getElementById('novo-duracao').value,
+        calorias: document.getElementById('novo-calorias').value
+    };
+
+    const res = await fetchAPI('/atividades', 'POST', dados);
+    
+    if (res && res.ok) {
+        alert('Atividade criada com sucesso!');
+        
+        // Atualiza dados locais do usuário (qtd atividades/calorias) para refletir na sidebar
+        usuarioLogado.qtd_atividades++;
+        usuarioLogado.qtd_calorias += parseInt(dados.calorias);
+        atualizarUI();
+        
+        cancelarCriacao();
+        // Força recarregamento para incluir a nova atividade se ela corresponder ao filtro atual
+        filtroAtual = dados.tipo; 
+        filtrarAtividades(filtroAtual);
+    } else {
+        alert('Erro ao criar atividade. Verifique os dados.');
+    }
+});

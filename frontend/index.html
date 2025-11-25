@@ -1,166 +1,131 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReceitasDelícia</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <title>SAEPSaúde</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container-fluid p-0">
-        <div class="row g-0 min-vh-100">
-            <!-- Coluna Perfil -->
-            <div class="col-md-3 perfil-coluna">
-                <div class="perfil-container">
-                    <div class="perfil-header text-center p-4">
-                        <div class="logo-container mb-3">
-                            <img id="empresa-logo" src="anexos/logo_saepsaude/SAEPSaude.png" alt="Logo" class="logo-circular">
-                        </div>
-                        <h2 id="empresa-nome" class="text-white mb-4">ReceitasDelícia</h2>
-                        <div class="estatisticas">
-                            <p class="text-white mb-2"><strong id="total-receitas">0</strong> Qtd. Receitas</p>
-                            <p class="text-white"><strong id="total-dificuldade">0</strong> Qtd. Pontos</p>
-                        </div>
-                    </div>
-                    <div class="perfil-actions p-3">
-                        <button id="btn-receitas" class="btn-atividade" disabled>
-                            <img src="anexos/icones/progresso.svg" alt="Atividades" class="atividade-icon" style="width: 20px; height: 20px; filter: brightness(0) invert(1);">
-                            <span>Receitas</span>
-                        </button>
-                    </div>
-                    <div class="perfil-footer">
-                        <div class="footer-content p-3">
-                            <span class="text-white">ReceitasDelícia</span>
-                            <div class="social-icons mt-2">
-                                <img src="anexos/icones/instagram.svg" alt="Instagram" class="social-icon">
-                                <img src="anexos/icones/twitter.svg" alt="Twitter" class="social-icon">
-                                <img src="anexos/icones/tiktok.svg" alt="TikTok" class="social-icon">
-                            </div>
-                            <p class="text-white mt-2 mb-0 small">Copyright - 2024/2025</p>
-                        </div>
-                    </div>
-                </div>
+    
+    <!-- Modal de Login -->
+    <div id="modal-login" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login</h3>
+                <span class="close-btn" onclick="fecharModalLogin()">&times;</span>
             </div>
-
-            <!-- Coluna Principal -->
-            <div class="col-md-9 main-coluna">
-                <div class="main-container">
-                    <!-- Header -->
-                    <div class="main-header">
-                        <button id="btn-login" class="btn btn-light me-2">Login</button>
-                        <button id="btn-logout" class="btn btn-light d-none">Logout</button>
-                        <span id="user-info" class="align-self-center me-3 d-none"></span>
-                    </div>
-
-                    <!-- Filtros -->
-                    <div class="filtros-container p-3">
-                        <div class="filtros-wrapper">
-                            <button class="btn-filtro active" data-tipo="">Todas</button>
-                            <button class="btn-filtro" data-tipo="Sobremesa">Sobremesa</button>
-                            <button class="btn-filtro" data-tipo="Prato Principal">Prato Principal</button>
-                            <button class="btn-filtro" data-tipo="Aperitivo">Aperitivo</button>
-                        </div>
-                    </div>
-
-                    <!-- Lista de Receitas -->
-                    <div id="receitas-container" class="receitas-container p-4">
-                        <!-- Receitas serão carregadas aqui -->
-                    </div>
-
-                    <!-- Paginação -->
-                    <div id="paginacao-container" class="paginacao-container p-3 text-center">
-                        <!-- Paginação será gerada aqui -->
-                    </div>
+            <form id="form-login">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required>
+                
+                <label for="login-senha">Senha</label>
+                <input type="password" id="login-senha" required>
+                
+                <p id="msg-erro-login" class="erro-msg"></p>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharModalLogin()">Cancelar</button>
+                    <button type="submit" class="btn-login-submit">Login</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Modal Login -->
-    <div class="modal fade" id="loginModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Login</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="login-form">
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="login-email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Senha</label>
-                            <input type="password" class="form-control" id="login-senha" required>
-                        </div>
-                        <div id="login-erro" class="alert alert-danger d-none"></div>
-                        <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                    </form>
-                </div>
+    <div class="app-container">
+        
+        <!-- BARRA LATERAL (PERFIL) -->
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="anexos/logo_saepsaude/SAEPSaude.png" alt="Logo SAEPSaúde" class="logo">
+                <h2>SAEPSaúde</h2>
             </div>
-        </div>
+
+            <div id="perfil-box" class="perfil-box">
+                <img id="usuario-img" src="anexos/logo_saepsaude/SAEPSaude.png" alt="Foto de Perfil">
+                <h3 id="usuario-nome">Visitante</h3>
+                <div class="stats">
+                    <p>Qtd. Atividades: <span id="stat-atividades">-</span></p>
+                    <p>Qtd. Calorias: <span id="stat-calorias">-</span></p>
+                </div>
+                <button id="btn-criar-atividade" disabled onclick="mostrarFormAtividade()">
+                    <img src="anexos/icones/progresso.svg" style="width: 16px; vertical-align: middle; margin-right: 5px;"> Nova Atividade
+                </button>
+            </div>
+
+            <footer>
+                <p>SAEPSaúde</p>
+                <div class="social-icons">
+                    <a href="#"><img src="anexos/icones/instagram.svg" alt="Instagram"></a>
+                    <a href="#"><img src="anexos/icones/twitter.svg" alt="Twitter"></a>
+                    <a href="#"><img src="anexos/icones/tiktok.svg" alt="TikTok"></a>
+                </div>
+                <p>Copyright-2025</p>
+            </footer>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            <header class="top-bar">
+                <button id="btn-login-logout" onclick="toggleLogin()">Login</button>
+            </header>
+
+            <!-- Filtros -->
+            <section class="filtros-section">
+                <button class="filtro-btn active" onclick="filtrarAtividades('Corrida')">Corrida</button>
+                <button class="filtro-btn" onclick="filtrarAtividades('Caminhada')">Caminhada</button>
+                <button class="filtro-btn" onclick="filtrarAtividades('Trilha')">Trilha</button>
+            </section>
+
+            <!-- Formulário de Nova Atividade (Inicialmente Oculto) -->
+            <section id="form-atividade-container" style="display: none;" class="form-container">
+                <h3>Crie sua atividade</h3>
+                <form id="form-nova-atividade">
+                    <div class="form-group">
+                        <label for="novo-tipo">Tipo</label>
+                        <select id="novo-tipo" required>
+                            <option value="Corrida">Corrida</option>
+                            <option value="Caminhada">Caminhada</option>
+                            <option value="Trilha">Trilha</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="novo-distancia">Distância (metros)</label>
+                        <input type="number" id="novo-distancia" placeholder="Ex: 5000" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="novo-duracao">Duração (minutos)</label>
+                        <input type="number" id="novo-duracao" placeholder="Ex: 40" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="novo-calorias">Calorias</label>
+                        <input type="number" id="novo-calorias" placeholder="Ex: 300" min="1" required>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancelar" onclick="cancelarCriacao()">Cancelar</button>
+                        <button type="submit" class="btn-submit">Salvar</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Lista de Atividades -->
+            <section id="lista-atividades" class="activities-list">
+                <!-- Cards serão inseridos aqui via JS -->
+                <p style="text-align: center; color: #666;">Carregando atividades...</p>
+            </section>
+
+            <!-- Paginação -->
+            <div id="paginacao" class="pagination">
+                <!-- Botões de paginação via JS -->
+            </div>
+
+        </main>
     </div>
 
-    <!-- Modal Criar Receita -->
-    <div class="modal fade" id="criarReceitaModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Crie sua Receita</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="criar-receita-form">
-                        <div class="mb-3">
-                            <label class="form-label">Título da Receita</label>
-                            <input type="text" class="form-control" id="receita-titulo" placeholder="Ex: Bolo de Chocolate" required>
-                            <div class="erro-campo d-none"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tipo</label>
-                            <select class="form-control" id="receita-tipo" required>
-                                <option value="">Selecione...</option>
-                                <option value="Sobremesa">Sobremesa</option>
-                                <option value="Prato Principal">Prato Principal</option>
-                                <option value="Aperitivo">Aperitivo</option>
-                            </select>
-                            <div class="erro-campo d-none"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tempo de Preparo (minutos)</label>
-                            <input type="number" class="form-control" id="receita-tempo" placeholder="Ex: 60" required>
-                            <div class="erro-campo d-none"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Porções</label>
-                            <input type="number" class="form-control" id="receita-porcoes" placeholder="Ex: 8" required>
-                            <div class="erro-campo d-none"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Dificuldade</label>
-                            <select class="form-control" id="receita-dificuldade" required>
-                                <option value="">Selecione...</option>
-                                <option value="Fácil">Fácil</option>
-                                <option value="Médio">Médio</option>
-                                <option value="Difícil">Difícil</option>
-                            </select>
-                            <div class="erro-campo d-none"></div>
-                        </div>
-                        <button type="submit" class="btn btn-criar w-100">Criar Receita</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
-
