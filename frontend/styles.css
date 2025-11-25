@@ -1,0 +1,497 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #FFFFFF;
+}
+
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* Coluna Perfil */
+.perfil-coluna {
+    background-color: #333333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.perfil-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    justify-content: space-between;
+}
+
+.perfil-header {
+    padding: 30px 20px;
+    text-align: center;
+}
+
+.logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.logo-circular {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #FFD700;
+    object-fit: cover;
+    background-color: #FFFFFF;
+    padding: 10px;
+}
+
+.perfil-header h2 {
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+}
+
+.estatisticas {
+    text-align: left;
+    padding: 0 20px;
+}
+
+.estatisticas p {
+    color: #FFFFFF;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.perfil-actions {
+    padding: 20px;
+    flex: 1;
+}
+
+.btn-atividade {
+    background-color: transparent;
+    border: none;
+    color: #FFFFFF;
+    padding: 15px;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.btn-atividade:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-atividade:not(:disabled):hover {
+    background-color: rgba(72, 61, 173, 0.3);
+}
+
+.btn-atividade.active {
+    background-color: #483DAD;
+}
+
+.atividade-icon {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1);
+}
+
+.perfil-footer {
+    background-color: #333333;
+    color: #FFFFFF;
+    margin-top: auto;
+}
+
+.footer-content {
+    text-align: center;
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.social-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+}
+
+/* Coluna Principal */
+.main-coluna {
+    background-color: #FFFFFF;
+}
+
+.main-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-header {
+    background-color: #FFFFFF;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.main-header button {
+    background-color: #FFFFFF;
+    color: #333333;
+    border: 1px solid #333333;
+    padding: 8px 20px;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.main-header button:hover {
+    background-color: #333333;
+    color: #FFFFFF;
+}
+
+/* Filtros */
+.filtros-container {
+    background-color: #333333;
+    color: #FFFFFF;
+    padding: 15px 20px !important;
+}
+
+.filtros-wrapper {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.btn-filtro {
+    background-color: transparent;
+    border: none;
+    color: #FFFFFF;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.btn-filtro:hover {
+    background-color: #483DAD;
+}
+
+.btn-filtro.active {
+    background-color: #483DAD;
+    color: #FFFFFF;
+}
+
+/* Receitas */
+.receitas-container {
+    flex: 1;
+    padding: 20px !important;
+    background-color: #FFFFFF;
+}
+
+.receita-card {
+    background-color: #FFFFFF;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    position: relative;
+}
+
+.receita-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+}
+
+.receita-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 2px solid #e0e0e0;
+}
+
+.receita-usuario-nome {
+    font-size: 0.9rem;
+    color: #333333;
+    text-align: center;
+    font-weight: 500;
+}
+
+.receita-center {
+    flex: 1;
+    text-align: center;
+}
+
+.receita-tipo {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 10px;
+}
+
+.receita-data {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.receita-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.receita-info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.receita-info-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333333;
+    margin-bottom: 3px;
+}
+
+.receita-info-label {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.receita-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-end;
+    min-width: 80px;
+}
+
+.receita-acao {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.receita-acao:hover {
+    background-color: #f0f0f0;
+}
+
+.receita-acao img {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+}
+
+
+.receita-acao.curtido .bi-heart-fill {
+    color: #FF0000 !important;
+}
+
+.receita-acao .bi-heart,
+.receita-acao .bi-heart-fill,
+.receita-acao .bi-chat {
+    font-size: 20px;
+    color: #333333;
+}
+
+.icon-like {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+}
+
+.icon-like {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.receita-acao span {
+    font-size: 0.9rem;
+    color: #333333;
+}
+
+.comentarios-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+    width: 100%;
+    flex-basis: 100%;
+}
+
+.comentario-input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.comentario-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.comentario-input::placeholder {
+    color: #999;
+}
+
+.btn-enviar-comentario {
+    background-color: #333333;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.btn-enviar-comentario:hover {
+    background-color: #483DAD;
+    color: #FFFFFF;
+}
+
+.comentarios-lista {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.comentario-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+.comentario-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.comentario-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover;
+}
+
+.comentario-texto {
+    color: #333333;
+    font-size: 0.9rem;
+}
+
+.erro-comentario {
+    color: #FF0000;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+/* Paginação */
+.paginacao-container {
+    background-color: #FFFFFF;
+    border-top: 1px solid #e0e0e0;
+}
+
+.paginacao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-pagina {
+    background-color: #FFFFFF;
+    border: 1px solid #333333;
+    color: #333333;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.btn-pagina:hover:not(:disabled) {
+    background-color: #483DAD;
+    color: #FFFFFF;
+    border-color: #483DAD;
+}
+
+.btn-pagina.active {
+    background-color: #483DAD;
+    color: #FFFFFF;
+    border-color: #483DAD;
+}
+
+.btn-pagina:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modal */
+.modal-content {
+    border-radius: 8px;
+}
+
+.btn-criar {
+    background-color: #333333;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px;
+}
+
+.btn-criar:hover {
+    background-color: #483DAD;
+    color: #FFFFFF;
+}
+
+.form-control.erro {
+    border-color: #FF0000;
+}
+
+.erro-campo {
+    color: #FF0000;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.erro-campo.d-none {
+    display: none;
+}
+
+/* Minhas Receitas */
+.minhas-receitas-container {
+    padding: 20px;
+}
+
+.receita-data {
+    color: #666;
+    font-size: 0.9rem;
+}
+
